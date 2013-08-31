@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Facebook
+ * Copyright 2010-present Facebook.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
  The UIViewController representing the Scrumptious landing page.
 */
 @interface SCLoginViewController : UIViewController<FBLoginViewDelegate>
-
 @property (unsafe_unretained, nonatomic) IBOutlet FBLoginView *FBLoginView;
-
+- (IBAction)clickSkipLogIn:(id)sender;
 @end
