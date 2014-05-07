@@ -117,16 +117,14 @@
 
 - (void)loginViewShowingLoggedOutUser:(FBLoginView *)loginView {
     // test to see if we can use the share dialog built into the Facebook application
-    FBShareDialogParams *p = [[FBShareDialogParams alloc] init];
+    FBLinkShareParams *p = [[FBLinkShareParams alloc] init];
     p.link = [NSURL URLWithString:@"http://developers.facebook.com/ios"];
-#ifdef DEBUG
-    [FBSettings enableBetaFeatures:FBBetaFeaturesShareDialog];
-#endif
     BOOL canShareFB = [FBDialogs canPresentShareDialogWithParams:p];
     BOOL canShareiOS6 = [FBDialogs canPresentOSIntegratedShareDialogWithSession:nil];
+    BOOL canShareFBPhoto = [FBDialogs canPresentShareDialogWithPhotos];
 
     self.buttonPostStatus.enabled = canShareFB || canShareiOS6;
-    self.buttonPostPhoto.enabled = NO;
+    self.buttonPostPhoto.enabled = canShareFBPhoto;
     self.buttonPickFriends.enabled = NO;
     self.buttonPickPlace.enabled = NO;
 
@@ -192,19 +190,20 @@
     // allows the app to publish without any user interaction.
 
     // If it is available, we will first try to post using the share dialog in the Facebook app
-    FBAppCall *appCall = [FBDialogs presentShareDialogWithLink:urlToShare
-                                                          name:@"Hello Facebook"
-                                                       caption:nil
-                                                   description:@"The 'Hello Facebook' sample application showcases simple Facebook integration."
-                                                       picture:nil
-                                                   clientState:nil
-                                                       handler:^(FBAppCall *call, NSDictionary *results, NSError *error) {
-                                                           if (error) {
-                                                               NSLog(@"Error: %@", error.description);
-                                                           } else {
-                                                               NSLog(@"Success!");
-                                                           }
-                                                       }];
+    FBLinkShareParams *params = [[FBLinkShareParams alloc] initWithLink:urlToShare
+                                                                   name:@"Hello Facebook"
+                                                                caption:nil
+                                                            description:@"The 'Hello Facebook' sample application showcases simple Facebook integration."
+                                                                picture:nil];
+    FBAppCall *appCall = [FBDialogs presentShareDialogWithParams:params
+                                                     clientState:nil
+                                                         handler:^(FBAppCall *call, NSDictionary *results, NSError *error) {
+                                                             if (error) {
+                                                                 NSLog(@"Error: %@", error.description);
+                                                             } else {
+                                                                 NSLog(@"Success!");
+                                                             }
+                                                         }];
 
     if (!appCall) {
         // Next try to post using Facebook's iOS6 integration
@@ -240,27 +239,43 @@
 
 // Post Photo button handler
 - (IBAction)postPhotoClick:(UIButton *)sender {
-    // Just use the icon image from the application itself.  A real app would have a more
-    // useful way to get an image.
-    UIImage *img = [UIImage imageNamed:@"Icon-72@2x.png"];
+  // Just use the icon image from the application itself.  A real app would have a more
+  // useful way to get an image.
+  UIImage *img = [UIImage imageNamed:@"Icon-72@2x.png"];
+  BOOL canPresent = [FBDialogs canPresentShareDialogWithPhotos];
+  NSLog(@"canPresent: %d", canPresent);
+    
+  FBPhotoParams *params = [[FBPhotoParams alloc] init];
+  params.photos = @[img];
 
+  FBAppCall *appCall = [FBDialogs presentShareDialogWithPhotoParams:params
+                                                        clientState:nil
+                                                            handler:^(FBAppCall *call, NSDictionary *results, NSError *error) {
+                                                                if (error) {
+                                                                    NSLog(@"Error: %@", error.description);
+                                                                } else {
+                                                                    NSLog(@"Success!");
+                                                                }
+                                                            }];
+  if (!appCall) {
     [self performPublishAction:^{
-        FBRequestConnection *connection = [[FBRequestConnection alloc] init];
-        connection.errorBehavior = FBRequestConnectionErrorBehaviorReconnectSession
-        | FBRequestConnectionErrorBehaviorAlertUser
-        | FBRequestConnectionErrorBehaviorRetry;
+      FBRequestConnection *connection = [[FBRequestConnection alloc] init];
+      connection.errorBehavior = FBRequestConnectionErrorBehaviorReconnectSession
+      | FBRequestConnectionErrorBehaviorAlertUser
+      | FBRequestConnectionErrorBehaviorRetry;
 
-        [connection addRequest:[FBRequest requestForUploadPhoto:img]
+      [connection addRequest:[FBRequest requestForUploadPhoto:img]
            completionHandler:^(FBRequestConnection *innerConnection, id result, NSError *error) {
              [self showAlert:@"Photo Post" result:result error:error];
              if (FBSession.activeSession.isOpen) {
                self.buttonPostPhoto.enabled = YES;
              }
            }];
-        [connection start];
+      [connection start];
 
-        self.buttonPostPhoto.enabled = NO;
+      self.buttonPostPhoto.enabled = NO;
     }];
+  }
 }
 
 // Pick Friends button handler
