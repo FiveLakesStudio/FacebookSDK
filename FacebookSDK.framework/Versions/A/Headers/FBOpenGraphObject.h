@@ -66,7 +66,8 @@
  @property
  @abstract Typed access to the object's description property
  */
-@property (retain, nonatomic) id                    description;
+// !! TC !! Commited out because of XCode-6 Warning and we don't use the description anyway!
+//@property (retain, nonatomic) id                    description;
 
 /*!
  @property
